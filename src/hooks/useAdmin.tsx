@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
-import type { AdminUser, AdminOrder, AdminStats, OrderStatusUpdate, UserStatusUpdate } from '../types/admin';
+import type { AdminUser, AdminOrder, AdminStats, OrderStatusUpdate, UserStatusUpdate, PaymentStatusUpdate } from '../types/admin';
 
 interface AdminContextType {
   loading: boolean;
@@ -15,6 +15,7 @@ interface AdminContextType {
   loadOrders: () => Promise<void>;
   loadStats: () => Promise<void>;
   updateOrderStatus: (update: OrderStatusUpdate) => Promise<void>;
+  updatePaymentStatus: (update: PaymentStatusUpdate) => Promise<void>;
   updateUserStatus: (update: UserStatusUpdate) => Promise<void>;
   exportOrders: (format: 'csv' | 'json') => void;
   clearError: () => void;
@@ -402,6 +403,44 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updatePaymentStatus = async (update: PaymentStatusUpdate) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('💳 [ADMIN] Updating payment status:', update);
+
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          payment_status: update.status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', update.orderId);
+
+      if (error) throw error;
+
+      // Update local state
+      setOrders(prev => prev.map(order => 
+        order.id === update.orderId 
+          ? { ...order, payment_status: update.status, updated_at: new Date().toISOString() }
+          : order
+      ));
+
+      console.log('✅ [ADMIN] Payment status updated successfully');
+
+      // Update stats if needed
+      if (stats) {
+        await loadStats();
+      }
+    } catch (err) {
+      console.error('❌ [ADMIN] Error updating payment status:', err);
+      setError('Failed to update payment status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateUserStatus = async (update: UserStatusUpdate) => {
     try {
       setLoading(true);
@@ -508,6 +547,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     loadOrders,
     loadStats,
     updateOrderStatus,
+    updatePaymentStatus,
     updateUserStatus,
     exportOrders,
     clearError

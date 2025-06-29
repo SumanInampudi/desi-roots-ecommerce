@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, User, LogOut, Settings, LogIn, Heart } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, LogIn, Heart, ShoppingBag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Logo from './Logo';
 import CartIcon from './cart/CartIcon';
@@ -80,6 +80,12 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onNavClick, onCartClick 
     console.log('❤️ [HEADER] Favorites clicked');
     setShowUserMenu(false);
     navigate('/favorites');
+  };
+
+  const handleMyOrdersClick = () => {
+    console.log('📦 [HEADER] My Orders clicked');
+    setShowUserMenu(false);
+    navigate('/my-orders');
   };
 
   const handleAuthModalClose = () => {
@@ -206,6 +212,14 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onNavClick, onCartClick 
                           </div>
                           
                           <button
+                            onClick={handleMyOrdersClick}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2 transition-colors duration-200"
+                          >
+                            <ShoppingBag className="w-4 h-4" />
+                            <span>My Orders</span>
+                          </button>
+                          
+                          <button
                             onClick={handleFavoritesClick}
                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2 transition-colors duration-200"
                           >
@@ -293,6 +307,17 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onNavClick, onCartClick 
                           {user.email}
                         </p>
                       </div>
+                      
+                      <button
+                        onClick={() => {
+                          handleMyOrdersClick();
+                          setIsMenuOpen(false);
+                        }}
+                        className="flex items-center space-x-2 w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors duration-200"
+                      >
+                        <ShoppingBag className="w-5 h-5" />
+                        <span>My Orders</span>
+                      </button>
                       
                       <button
                         onClick={() => {

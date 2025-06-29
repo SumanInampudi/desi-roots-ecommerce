@@ -5,10 +5,10 @@ import {
   Home, 
   Users, 
   ShoppingBag, 
-  Settings, 
   LogOut,
   Shield,
-  BarChart3
+  BarChart3,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -28,7 +28,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Dashboard', href: '/admin', icon: BarChart3 },
     { name: 'Users', href: '/admin/users', icon: Users },
     { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
-    { name: 'Settings', href: '/admin/settings', icon: Settings },
+    { name: 'Performance', href: '/admin/performance', icon: Activity },
   ];
 
   const handleSignOut = async () => {

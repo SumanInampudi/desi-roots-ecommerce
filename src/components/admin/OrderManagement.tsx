@@ -9,10 +9,18 @@ import {
   Calendar,
   DollarSign,
   Package,
-  Truck
+  Truck,
+  X,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  CreditCard
 } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
+import { OrderService } from '../../services/orderService';
 import AdminLayout from './AdminLayout';
+import OrderStatusManager from './OrderStatusManager';
+import PaymentStatusManager from './PaymentStatusManager';
 import type { AdminOrder } from '../../types/admin';
 
 const OrderManagement: React.FC = () => {
@@ -21,9 +29,11 @@ const OrderManagement: React.FC = () => {
   const [filterPayment, setFilterPayment] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
-  const [editingStatus, setEditingStatus] = useState<string>('');
+  const [showStatusManager, setShowStatusManager] = useState<string | null>(null);
+  const [showPaymentManager, setShowPaymentManager] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'order' | 'payment'>('order');
   
-  const { orders, loadOrders, updateOrderStatus, exportOrders, loading, error } = useAdmin();
+  const { orders, loadOrders, updateOrderStatus, updatePaymentStatus, exportOrders, loading, error } = useAdmin();
 
   useEffect(() => {
     loadOrders();
@@ -40,9 +50,22 @@ const OrderManagement: React.FC = () => {
     return matchesSearch && matchesStatus && matchesPayment;
   });
 
-  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
+  const handleOrderStatusUpdate = async (orderId: string, newStatus: string) => {
     await updateOrderStatus({ orderId, status: newStatus });
-    setEditingStatus('');
+    setShowStatusManager(null);
+    
+    // Update selected order if it's currently being viewed
+    if (selectedOrder && selectedOrder.id === orderId) {
+      const updatedOrder = orders.find(o => o.id === orderId);
+      if (updatedOrder) {
+        setSelectedOrder(updatedOrder);
+      }
+    }
+  };
+
+  const handlePaymentStatusUpdate = async (orderId: string, newStatus: string) => {
+    await updatePaymentStatus({ orderId, status: newStatus });
+    setShowPaymentManager(null);
     
     // Update selected order if it's currently being viewed
     if (selectedOrder && selectedOrder.id === orderId) {
@@ -71,22 +94,8 @@ const OrderManagement: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'confirmed':
-        return 'bg-blue-100 text-blue-800';
-      case 'processing':
-        return 'bg-purple-100 text-purple-800';
-      case 'shipped':
-        return 'bg-indigo-100 text-indigo-800';
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    const statusInfo = OrderService.getStatusInfo(status);
+    return `${statusInfo.bgColor} ${statusInfo.color}`;
   };
 
   const getPaymentStatusColor = (status: string) => {
@@ -104,7 +113,24 @@ const OrderManagement: React.FC = () => {
     }
   };
 
-  const orderStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
+  const getStatusIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return <Clock className="w-4 h-4" />;
+      case 'processing':
+        return <Package className="w-4 h-4" />;
+      case 'shipped':
+        return <Truck className="w-4 h-4" />;
+      case 'delivered':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'cancelled':
+        return <X className="w-4 h-4" />;
+      default:
+        return <AlertTriangle className="w-4 h-4" />;
+    }
+  };
+
+  const orderStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 
   return (
     <AdminLayout>
@@ -262,29 +288,10 @@ const OrderManagement: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {editingStatus === order.id ? (
-                          <select
-                            value={order.order_status}
-                            onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
-                            onBlur={() => setEditingStatus('')}
-                            className="text-xs border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                            autoFocus
-                          >
-                            {orderStatuses.map(status => (
-                              <option key={status} value={status}>
-                                {status.charAt(0).toUpperCase() + status.slice(1)}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span 
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer ${getStatusColor(order.order_status)}`}
-                            onClick={() => setEditingStatus(order.id)}
-                            title="Click to edit status"
-                          >
-                            {order.order_status}
-                          </span>
-                        )}
+                        <span className={`inline-flex items-center space-x-1 px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.order_status)}`}>
+                          {getStatusIcon(order.order_status)}
+                          <span>{order.order_status}</span>
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div className="flex items-center">
@@ -306,11 +313,25 @@ const OrderManagement: React.FC = () => {
                           </button>
                           
                           <button
-                            onClick={() => setEditingStatus(order.id)}
+                            onClick={() => {
+                              setShowStatusManager(order.id);
+                              setActiveTab('order');
+                            }}
                             className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition-colors duration-200"
-                            title="Edit order status"
+                            title="Update order status"
                           >
                             <Edit className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setShowPaymentManager(order.id);
+                              setActiveTab('payment');
+                            }}
+                            className="p-2 rounded-lg text-purple-600 hover:bg-purple-50 transition-colors duration-200"
+                            title="Update payment status"
+                          >
+                            <CreditCard className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -368,8 +389,9 @@ const OrderManagement: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Order Status</label>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedOrder.order_status)}`}>
-                        {selectedOrder.order_status}
+                      <span className={`inline-flex items-center space-x-1 px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedOrder.order_status)}`}>
+                        {getStatusIcon(selectedOrder.order_status)}
+                        <span>{selectedOrder.order_status}</span>
                       </span>
                     </div>
                     <div>
@@ -458,7 +480,105 @@ const OrderManagement: React.FC = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Status Management Tabs */}
+                  <div>
+                    <div className="border-b border-gray-200 mb-4">
+                      <nav className="-mb-px flex space-x-8">
+                        <button
+                          onClick={() => setActiveTab('order')}
+                          className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                            activeTab === 'order'
+                              ? 'border-red-500 text-red-600'
+                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          }`}
+                        >
+                          Order Status
+                        </button>
+                        <button
+                          onClick={() => setActiveTab('payment')}
+                          className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                            activeTab === 'payment'
+                              ? 'border-red-500 text-red-600'
+                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          }`}
+                        >
+                          Payment Status
+                        </button>
+                      </nav>
+                    </div>
+
+                    {activeTab === 'order' && (
+                      <OrderStatusManager 
+                        order={selectedOrder} 
+                        onStatusUpdate={handleOrderStatusUpdate}
+                      />
+                    )}
+
+                    {activeTab === 'payment' && (
+                      <PaymentStatusManager 
+                        order={selectedOrder} 
+                        onStatusUpdate={handlePaymentStatusUpdate}
+                      />
+                    )}
+                  </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Order Status Manager Modal */}
+        {showStatusManager && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowStatusManager(null)} />
+              
+              <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Update Order Status</h3>
+                  <button
+                    onClick={() => setShowStatusManager(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                {showStatusManager && (
+                  <OrderStatusManager 
+                    order={orders.find(o => o.id === showStatusManager)!} 
+                    onStatusUpdate={handleOrderStatusUpdate}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Status Manager Modal */}
+        {showPaymentManager && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowPaymentManager(null)} />
+              
+              <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Update Payment Status</h3>
+                  <button
+                    onClick={() => setShowPaymentManager(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                {showPaymentManager && (
+                  <PaymentStatusManager 
+                    order={orders.find(o => o.id === showPaymentManager)!} 
+                    onStatusUpdate={handlePaymentStatusUpdate}
+                  />
+                )}
               </div>
             </div>
           </div>

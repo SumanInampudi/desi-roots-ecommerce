@@ -119,8 +119,8 @@ export class OrderService {
 
   static async saveOrderToDatabase(orderDetails: OrderDetails, userId: string): Promise<{ success: boolean; orderId?: string }> {
     try {
-      // Determine payment status based on payment method
-      const paymentStatus = orderDetails.paymentMethod === 'cod' ? 'cod_pending' : 'pending';
+      // Use 'pending' for all payment methods to comply with database constraint
+      const paymentStatus = 'pending';
       
       // Generate a display order ID for the order_number field
       const displayOrderId = this.generateDisplayOrderId();
@@ -135,7 +135,7 @@ export class OrderService {
           delivery_fee: orderDetails.summary.deliveryFee,
           payment_method: orderDetails.paymentMethod,
           payment_status: paymentStatus,
-          order_status: 'pending',
+          order_status: 'processing', // Automatically set to processing
           shipping_address: orderDetails.customerInfo.address
         }])
         .select('id, order_number')
@@ -566,5 +566,96 @@ Thank you for choosing Desi Roots! 🌶️`;
         errors: [...errors, 'Unexpected processing error']
       };
     }
+  }
+
+  // New method for logging status changes
+  static async logStatusChange(
+    orderId: string,
+    oldStatus: string,
+    newStatus: string,
+    userId: string,
+    userEmail: string
+  ): Promise<void> {
+    try {
+      console.log('📝 [STATUS-LOG] Logging status change:', {
+        orderId,
+        oldStatus,
+        newStatus,
+        userId,
+        userEmail,
+        timestamp: new Date().toISOString()
+      });
+
+      // In a real implementation, you would save this to a status_changes table
+      // For now, we'll just log it to the console
+      const logEntry = {
+        order_id: orderId,
+        old_status: oldStatus,
+        new_status: newStatus,
+        changed_by: userId,
+        changed_by_email: userEmail,
+        changed_at: new Date().toISOString()
+      };
+
+      console.log('✅ [STATUS-LOG] Status change logged:', logEntry);
+    } catch (error) {
+      console.error('❌ [STATUS-LOG] Failed to log status change:', error);
+    }
+  }
+
+  // Method to validate status transitions
+  static isValidStatusTransition(currentStatus: string, newStatus: string): boolean {
+    const validTransitions: Record<string, string[]> = {
+      'pending': ['processing', 'cancelled'],
+      'processing': ['shipped', 'cancelled'],
+      'shipped': ['delivered', 'cancelled'],
+      'delivered': [], // Final state
+      'cancelled': [] // Final state
+    };
+
+    return validTransitions[currentStatus]?.includes(newStatus) || false;
+  }
+
+  // Method to get status display information
+  static getStatusInfo(status: string): { color: string; bgColor: string; label: string; icon: string } {
+    const statusMap: Record<string, { color: string; bgColor: string; label: string; icon: string }> = {
+      'pending': {
+        color: 'text-yellow-800',
+        bgColor: 'bg-yellow-100',
+        label: 'Pending',
+        icon: '⏳'
+      },
+      'processing': {
+        color: 'text-blue-800',
+        bgColor: 'bg-blue-100',
+        label: 'Processing',
+        icon: '⚙️'
+      },
+      'shipped': {
+        color: 'text-indigo-800',
+        bgColor: 'bg-indigo-100',
+        label: 'Shipped',
+        icon: '🚚'
+      },
+      'delivered': {
+        color: 'text-green-800',
+        bgColor: 'bg-green-100',
+        label: 'Delivered',
+        icon: '✅'
+      },
+      'cancelled': {
+        color: 'text-red-800',
+        bgColor: 'bg-red-100',
+        label: 'Cancelled',
+        icon: '❌'
+      }
+    };
+
+    return statusMap[status] || {
+      color: 'text-gray-800',
+      bgColor: 'bg-gray-100',
+      label: status,
+      icon: '❓'
+    };
   }
 }

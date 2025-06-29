@@ -4,6 +4,8 @@ import { AuthProvider } from './hooks/useAuth';
 import { CartProvider } from './hooks/useCart';
 import { PaymentProvider } from './hooks/usePayment';
 import { OrderProvider } from './hooks/useOrder';
+import { OrdersProvider } from './hooks/useOrders';
+import { OptimizedOrdersProvider } from './hooks/useOptimizedOrders';
 import { FavoritesProvider } from './hooks/useFavorites';
 import { AdminProvider } from './hooks/useAdmin';
 import Header from './components/Header';
@@ -18,6 +20,8 @@ import ProfileSettings from './components/auth/ProfileSettings';
 import AuthCallback from './components/auth/AuthCallback';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import FavoritesPage from './components/favorites/FavoritesPage';
+import MyOrdersPage from './components/orders/MyOrdersPage';
+import OptimizedMyOrdersPage from './components/orders/OptimizedMyOrdersPage';
 import CartDrawer from './components/cart/CartDrawer';
 import CartIcon from './components/cart/CartIcon';
 import CheckoutPage from './components/payment/CheckoutPage';
@@ -26,6 +30,7 @@ import AdminRoute from './components/admin/AdminRoute';
 import AdminDashboard from './components/admin/AdminDashboard';
 import UserManagement from './components/admin/UserManagement';
 import OrderManagement from './components/admin/OrderManagement';
+import PerformanceDashboard from './components/admin/PerformanceDashboard';
 
 function HomePage() {
   const [activeSection, setActiveSection] = useState('home');
@@ -237,53 +242,73 @@ function App() {
           <CartProvider>
             <PaymentProvider>
               <OrderProvider>
-                <Router>
-                  <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/auth/callback" element={<AuthCallback />} />
-                    <Route 
-                      path="/profile" 
-                      element={
-                        <ProtectedRoute>
-                          <ProfileSettings />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/favorites" 
-                      element={
-                        <ProtectedRoute>
-                          <FavoritesPage />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    {/* Admin Routes */}
-                    <Route 
-                      path="/admin" 
-                      element={
-                        <AdminRoute>
-                          <AdminDashboard />
-                        </AdminRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/admin/users" 
-                      element={
-                        <AdminRoute>
-                          <UserManagement />
-                        </AdminRoute>
-                      } 
-                    />
-                    <Route 
-                      path="/admin/orders" 
-                      element={
-                        <AdminRoute>
-                          <OrderManagement />
-                        </AdminRoute>
-                      } 
-                    />
-                  </Routes>
-                </Router>
+                <OrdersProvider>
+                  <OptimizedOrdersProvider>
+                    <Router>
+                      <Routes>
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/auth/callback" element={<AuthCallback />} />
+                        <Route 
+                          path="/profile" 
+                          element={
+                            <ProtectedRoute>
+                              <ProfileSettings />
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/favorites" 
+                          element={
+                            <ProtectedRoute>
+                              <FavoritesPage />
+                            </ProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/my-orders" 
+                          element={
+                            <ProtectedRoute>
+                              <OptimizedMyOrdersPage />
+                            </ProtectedRoute>
+                          } 
+                        />
+                        {/* Admin Routes */}
+                        <Route 
+                          path="/admin" 
+                          element={
+                            <AdminRoute>
+                              <AdminDashboard />
+                            </AdminRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/admin/users" 
+                          element={
+                            <AdminRoute>
+                              <UserManagement />
+                            </AdminRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/admin/orders" 
+                          element={
+                            <AdminRoute>
+                              <OrderManagement />
+                            </AdminRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/admin/performance" 
+                          element={
+                            <AdminRoute>
+                              <PerformanceDashboard />
+                            </AdminRoute>
+                          } 
+                        />
+                      </Routes>
+                    </Router>
+                  </OptimizedOrdersProvider>
+                </OrdersProvider>
               </OrderProvider>
             </PaymentProvider>
           </CartProvider>

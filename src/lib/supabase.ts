@@ -36,8 +36,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     fetch: (url, options = {}) => {
       return fetch(url, {
         ...options,
-        // Add timeout to prevent hanging requests
-        signal: AbortSignal.timeout(10000) // 10 second timeout
+        // Increased timeout from 10 seconds to 30 seconds to prevent premature timeouts
+        signal: AbortSignal.timeout(30000) // 30 second timeout
       }).catch(error => {
         console.error('❌ [SUPABASE] Fetch error:', error.message);
         throw new Error(`Network error: ${error.message}. Please check your internet connection and Supabase project status.`);

@@ -32,6 +32,33 @@ export interface OrderDetails {
   trackingNumber?: string;
 }
 
+export interface UserOrder {
+  id: string;
+  order_number: string;
+  items: Array<{
+    id: number;
+    name: string;
+    quantity: number;
+    price: number;
+    weight: string;
+    total: number;
+  }>;
+  total_amount: number;
+  delivery_fee: number;
+  payment_method: string;
+  payment_status: string;
+  order_status: string;
+  shipping_address: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    landmark?: string;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
 export interface EmailNotification {
   to: string;
   subject: string;

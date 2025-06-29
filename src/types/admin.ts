@@ -43,8 +43,25 @@ export interface OrderStatusUpdate {
   notes?: string;
 }
 
+export interface PaymentStatusUpdate {
+  orderId: string;
+  status: string;
+  notes?: string;
+}
+
 export interface UserStatusUpdate {
   userId: string;
   isActive: boolean;
   isAdmin: boolean;
+}
+
+export interface StatusChangeLog {
+  id: string;
+  order_id: string;
+  old_status: string;
+  new_status: string;
+  changed_by: string;
+  changed_by_email: string;
+  changed_at: string;
+  notes?: string;
 }
