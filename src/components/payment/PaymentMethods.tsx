@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CreditCard, Smartphone, QrCode, Wallet } from 'lucide-react';
+import { QrCode } from 'lucide-react';
 import { usePayment } from '../../hooks/usePayment';
 import UPIPayment from './UPIPayment';
 
@@ -16,39 +16,27 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
 }) => {
   const { upiProviders } = usePayment();
 
+  // Only QR code payment method
   const paymentMethods = [
     {
-      id: 'upi',
-      name: 'UPI Payment',
-      description: 'Pay using Google Pay, PhonePe, Paytm, or any UPI app',
-      icon: <Smartphone className="w-6 h-6" />,
-      popular: true
-    },
-    {
-      id: 'card',
-      name: 'Credit/Debit Card',
-      description: 'Visa, Mastercard, RuPay cards accepted',
-      icon: <CreditCard className="w-6 h-6" />,
-      disabled: true // Disabled for demo
-    },
-    {
-      id: 'netbanking',
-      name: 'Net Banking',
-      description: 'Pay directly from your bank account',
-      icon: <Wallet className="w-6 h-6" />,
-      disabled: true // Disabled for demo
-    },
-    {
       id: 'qr',
-      name: 'QR Code',
-      description: 'Scan QR code with any UPI app',
-      icon: <QrCode className="w-6 h-6" />
+      name: 'QR Code Payment',
+      description: 'Scan QR code with any UPI app (Google Pay, PhonePe, Paytm, etc.)',
+      icon: <QrCode className="w-6 h-6" />,
+      popular: true
     }
   ];
 
+  // Auto-select QR code method if none selected
+  React.useEffect(() => {
+    if (!selectedMethod) {
+      onMethodSelect('qr');
+    }
+  }, [selectedMethod, onMethodSelect]);
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-6">Choose Payment Method</h2>
+      <h2 className="text-lg font-semibold text-gray-900 mb-6">Payment Method</h2>
       
       <div className="space-y-3">
         {paymentMethods.map((method) => (
@@ -56,11 +44,9 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
             <label
               className={`
                 flex items-center p-4 border rounded-lg cursor-pointer transition-all duration-200
-                ${method.disabled 
-                  ? 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-50' 
-                  : selectedMethod === method.id
-                    ? 'border-red-500 bg-red-50'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                ${selectedMethod === method.id
+                  ? 'border-red-500 bg-red-50'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 }
               `}
             >
@@ -70,7 +56,6 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
                 value={method.id}
                 checked={selectedMethod === method.id}
                 onChange={(e) => onMethodSelect(e.target.value)}
-                disabled={method.disabled}
                 className="sr-only"
               />
               
@@ -87,12 +72,7 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
                     <h3 className="font-medium text-gray-900">{method.name}</h3>
                     {method.popular && (
                       <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
-                        Popular
-                      </span>
-                    )}
-                    {method.disabled && (
-                      <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2 py-1 rounded-full">
-                        Coming Soon
+                        Recommended
                       </span>
                     )}
                   </div>
@@ -113,8 +93,8 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
               </div>
             </label>
 
-            {/* UPI Payment Details */}
-            {selectedMethod === method.id && (method.id === 'upi' || method.id === 'qr') && (
+            {/* QR Payment Details */}
+            {selectedMethod === method.id && method.id === 'qr' && (
               <div className="mt-4 ml-4 pl-4 border-l-2 border-red-200">
                 <UPIPayment
                   amount={amount}
@@ -136,11 +116,27 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
             </svg>
           </div>
           <div>
-            <h4 className="text-sm font-medium text-blue-900">Secure Payment</h4>
+            <h4 className="text-sm font-medium text-blue-900">Secure QR Payment</h4>
             <p className="text-sm text-blue-700">
-              Your payment information is encrypted and secure. We never store your payment details.
+              Your payment is processed securely through UPI. We never store your payment details. Simply scan the QR code with any UPI app to complete your payment.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Supported UPI Apps */}
+      <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+        <h4 className="text-sm font-medium text-gray-900 mb-2">Supported UPI Apps</h4>
+        <div className="flex flex-wrap gap-2">
+          {upiProviders.map((provider) => (
+            <div
+              key={provider.id}
+              className="flex items-center space-x-1 px-2 py-1 bg-white border border-gray-200 rounded-md text-xs"
+            >
+              <span>{provider.icon}</span>
+              <span className="text-gray-700">{provider.name}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
@@ -12,7 +12,8 @@ import {
   Loader2,
   Eye,
   EyeOff,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 import { profileUpdateSchema, changePasswordSchema } from '../../utils/validation';
 import { useAuth } from '../../hooks/useAuth';
@@ -45,20 +46,47 @@ const ProfileSettings: React.FC = () => {
     resolver: zodResolver(changePasswordSchema)
   });
 
-  const onUpdateProfile = async (data: UpdateProfileData) => {
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
+  // Update form values when profile data loads
+  useEffect(() => {
+    if (profile) {
+      profileForm.reset({
+        full_name: profile.full_name || '',
+        phone: profile.phone || '',
+        address: profile.address || null
+      });
+    }
+  }, [profile, profileForm]);
 
+  // Clear messages after 5 seconds
+  useEffect(() => {
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess(null);
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, error]);
+
+  const onUpdateProfile = async (data: UpdateProfileData) => {
     try {
+      setIsLoading(true);
+      setError(null);
+      setSuccess(null);
+
+      console.log('📝 [PROFILE] Updating profile with data:', data);
+
       const { error } = await updateProfile(data);
       
       if (error) {
+        console.error('❌ [PROFILE] Update error:', error);
         setError(error.message);
       } else {
+        console.log('✅ [PROFILE] Profile updated successfully');
         setSuccess('Profile updated successfully!');
       }
     } catch (err) {
+      console.error('❌ [PROFILE] Unexpected error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
@@ -66,20 +94,25 @@ const ProfileSettings: React.FC = () => {
   };
 
   const onChangePassword = async (data: ChangePasswordData) => {
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
-
     try {
+      setIsLoading(true);
+      setError(null);
+      setSuccess(null);
+
+      console.log('🔑 [PASSWORD] Changing password');
+
       const { error } = await changePassword(data);
       
       if (error) {
+        console.error('❌ [PASSWORD] Change error:', error);
         setError(error.message);
       } else {
+        console.log('✅ [PASSWORD] Password changed successfully');
         setSuccess('Password changed successfully!');
         passwordForm.reset();
       }
     } catch (err) {
+      console.error('❌ [PASSWORD] Unexpected error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
@@ -87,16 +120,20 @@ const ProfileSettings: React.FC = () => {
   };
 
   const onDeleteAccount = async () => {
-    setIsLoading(true);
-    setError(null);
-
     try {
+      setIsLoading(true);
+      setError(null);
+
+      console.log('🗑️ [DELETE] Deleting account');
+
       const { error } = await deleteAccount();
       
       if (error) {
+        console.error('❌ [DELETE] Delete error:', error);
         setError(error.message);
       }
     } catch (err) {
+      console.error('❌ [DELETE] Unexpected error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
@@ -152,13 +189,15 @@ const ProfileSettings: React.FC = () => {
         {/* Content */}
         <div className="p-6">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
+              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <p className="text-red-700 text-sm">{error}</p>
             </div>
           )}
 
           {success && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start space-x-3">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
               <p className="text-green-700 text-sm">{success}</p>
             </div>
           )}
@@ -237,7 +276,7 @@ const ProfileSettings: React.FC = () => {
                     Address
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <div className="absolute top-3 left-3 pointer-events-none">
                       <MapPin className="h-5 w-5 text-gray-400" />
                     </div>
                     <textarea
@@ -254,10 +293,10 @@ const ProfileSettings: React.FC = () => {
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || profileForm.formState.isSubmitting}
                   className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? (
+                  {isLoading || profileForm.formState.isSubmitting ? (
                     <>
                       <Loader2 className="animate-spin h-5 w-5" />
                       <span>Saving...</span>
@@ -386,10 +425,10 @@ const ProfileSettings: React.FC = () => {
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || passwordForm.formState.isSubmitting}
                   className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? (
+                  {isLoading || passwordForm.formState.isSubmitting ? (
                     <>
                       <Loader2 className="animate-spin h-5 w-5" />
                       <span>Changing...</span>

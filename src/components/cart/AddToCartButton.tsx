@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Check, Loader2 } from 'lucide-react';
+import { ShoppingCart, Check, Loader2, Plus } from 'lucide-react';
 import { useCart } from '../../hooks/useCart';
 import { useAuth } from '../../hooks/useAuth';
 import type { Product } from '../../types/cart';
@@ -19,7 +19,7 @@ interface AddToCartButtonProps {
 const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   product,
   quantity = 1,
-  variant = 'primary',
+  variant = 'icon',
   size = 'md',
   className = '',
   onSuccess,
@@ -56,88 +56,105 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
 
   const isLoading = isAdding || loading;
 
-  // Size classes
+  // Size configurations for the minimalist icon button
   const sizeClasses = {
-    sm: 'py-1.5 px-3 text-sm h-8',
-    md: 'py-2.5 px-4 text-sm h-10',
-    lg: 'py-3 px-6 text-base h-12'
+    sm: 'w-8 h-8 p-1.5',   // 32px - perfect for mobile tapping
+    md: 'w-10 h-10 p-2',   // 40px - comfortable desktop size
+    lg: 'w-12 h-12 p-2.5'  // 48px - large touch target
   };
 
   const iconSizeClasses = {
-    sm: 'w-3 h-3',
-    md: 'w-4 h-4',
-    lg: 'w-5 h-5'
+    sm: 'w-5 h-5',
+    md: 'w-6 h-6', 
+    lg: 'w-7 h-7'
   };
 
-  // Variant classes
-  const getVariantClasses = () => {
+  // State-based styling
+  const getButtonClasses = () => {
+    const baseClasses = `
+      ${sizeClasses[size]}
+      rounded-full
+      font-semibold
+      transition-all
+      duration-300
+      ease-out
+      flex
+      items-center
+      justify-center
+      focus:outline-none
+      focus:ring-2
+      focus:ring-offset-2
+      focus:ring-red-500
+      transform
+      hover:scale-110
+      active:scale-95
+      disabled:opacity-50
+      disabled:cursor-not-allowed
+      disabled:transform-none
+      relative
+      overflow-hidden
+      group
+      shadow-lg
+      hover:shadow-xl
+    `;
+
     if (justAdded) {
-      return 'bg-green-600 hover:bg-green-700 text-white border-green-600';
+      return `${baseClasses} bg-green-600 hover:bg-green-700 text-white border-2 border-green-600 animate-pulse`;
     }
 
-    switch (variant) {
-      case 'primary':
-        return 'bg-red-600 hover:bg-red-700 text-white border-red-600';
-      case 'secondary':
-        return 'bg-white hover:bg-gray-50 text-gray-900 border-gray-300';
-      case 'icon':
-        return 'bg-red-600 hover:bg-red-700 text-white border-red-600 p-2';
-      default:
-        return 'bg-red-600 hover:bg-red-700 text-white border-red-600';
+    if (variant === 'icon') {
+      return `${baseClasses} bg-red-600 hover:bg-red-700 text-white border-2 border-red-600`;
     }
+
+    // Fallback for other variants
+    return `${baseClasses} bg-red-600 hover:bg-red-700 text-white border-2 border-red-600`;
   };
 
-  const buttonClasses = `
-    ${variant === 'icon' ? 'p-2' : sizeClasses[size]}
-    ${getVariantClasses()}
-    font-semibold rounded-lg transition-all duration-200 
-    flex items-center justify-center space-x-2 
-    disabled:opacity-50 disabled:cursor-not-allowed
-    transform hover:scale-105 active:scale-95
-    border
-    ${className}
-  `;
+  // Icon selection based on state
+  const getIcon = () => {
+    if (isLoading) {
+      return <Loader2 className={`${iconSizeClasses[size]} animate-spin`} />;
+    }
+    
+    if (justAdded) {
+      return <Check className={`${iconSizeClasses[size]} animate-bounce`} />;
+    }
+    
+    return <ShoppingCart className={`${iconSizeClasses[size]} group-hover:animate-pulse`} />;
+  };
 
-  if (variant === 'icon') {
-    return (
-      <button
-        onClick={handleAddToCart}
-        disabled={isLoading}
-        className={buttonClasses}
-        title="Add to Cart"
-      >
-        {isLoading ? (
-          <Loader2 className={`${iconSizeClasses[size]} animate-spin`} />
-        ) : justAdded ? (
-          <Check className={iconSizeClasses[size]} />
-        ) : (
-          <ShoppingCart className={iconSizeClasses[size]} />
-        )}
-      </button>
-    );
-  }
+  // Accessibility label
+  const getAriaLabel = () => {
+    if (isLoading) return `Adding ${product.name} to cart...`;
+    if (justAdded) return `${product.name} added to cart successfully`;
+    return `Add ${product.name} to cart`;
+  };
 
   return (
     <button
       onClick={handleAddToCart}
       disabled={isLoading}
-      className={buttonClasses}
+      className={`${getButtonClasses()} ${className}`}
+      aria-label={getAriaLabel()}
+      title={getAriaLabel()}
+      type="button"
     >
-      {isLoading ? (
-        <>
-          <Loader2 className={`${iconSizeClasses[size]} animate-spin`} />
-          {showText && <span>Adding...</span>}
-        </>
-      ) : justAdded ? (
-        <>
-          <Check className={iconSizeClasses[size]} />
-          {showText && <span>Added!</span>}
-        </>
-      ) : (
-        <>
-          {showIcon && <ShoppingCart className={iconSizeClasses[size]} />}
-          {showText && <span>Add to Cart</span>}
-        </>
+      {/* Ripple effect background */}
+      <div className="absolute inset-0 bg-white/20 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300 ease-out opacity-0 group-hover:opacity-100" />
+      
+      {/* Icon */}
+      <div className="relative z-10">
+        {getIcon()}
+      </div>
+
+      {/* Success indicator ring */}
+      {justAdded && (
+        <div className="absolute inset-0 border-2 border-green-300 rounded-full animate-ping" />
+      )}
+
+      {/* Loading indicator ring */}
+      {isLoading && (
+        <div className="absolute inset-0 border-2 border-red-300 rounded-full animate-pulse" />
       )}
     </button>
   );

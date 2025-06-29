@@ -4,17 +4,8 @@ import type { Database } from '../types/database';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log('🔧 [SUPABASE] Initializing Supabase client...', {
-  hasUrl: !!supabaseUrl,
-  hasKey: !!supabaseAnonKey,
-  url: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'missing'
-});
-
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ [SUPABASE] Missing environment variables:', {
-    VITE_SUPABASE_URL: !!supabaseUrl,
-    VITE_SUPABASE_ANON_KEY: !!supabaseAnonKey
-  });
+  console.error('❌ [SUPABASE] Missing environment variables');
   throw new Error('Missing Supabase environment variables');
 }
 
@@ -22,11 +13,11 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false, // Disable automatic URL detection to prevent navigation errors
+    detectSessionInUrl: false,
     flowType: 'pkce',
     storage: window.localStorage,
     storageKey: 'supabase.auth.token',
-    debug: true // Enable debug logging
+    debug: false // Disable debug for performance
   },
   global: {
     headers: {
@@ -43,25 +34,26 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-// Add connection test
-console.log('🔍 [SUPABASE] Testing connection...');
-supabase.auth.getSession().then(({ data, error }) => {
-  if (error) {
-    console.error('❌ [SUPABASE] Connection error:', error);
-  } else {
-    console.log('✅ [SUPABASE] Connected successfully', {
-      hasSession: !!data.session,
-      userId: data.session?.user?.id
+// Minimal connection test
+let connectionTested = false;
+if (!connectionTested) {
+  connectionTested = true;
+  
+  // Use a faster, non-blocking connection test
+  supabase.auth.getSession()
+    .then(({ error }) => {
+      if (error) {
+        console.error('❌ [SUPABASE] Connection error:', error.message);
+      } else {
+        console.log('✅ [SUPABASE] Connected');
+      }
+    })
+    .catch(() => {
+      console.error('❌ [SUPABASE] Connection failed');
     });
-  }
-});
+}
 
-// Log all auth events for debugging
-supabase.auth.onAuthStateChange((event, session) => {
-  console.log('🔄 [SUPABASE] Auth event:', {
-    event,
-    userId: session?.user?.id,
-    userEmail: session?.user?.email,
-    hasSession: !!session
-  });
+// Minimal auth event logging
+supabase.auth.onAuthStateChange((event) => {
+  console.log(`🔄 [SUPABASE] ${event}`);
 });

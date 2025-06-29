@@ -18,10 +18,9 @@ const LoginForm: React.FC<LoginFormProps> = ({
   onSuccess 
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { signIn, clearError, loading: authLoading } = useAuth();
+  const { signIn, loading: authLoading } = useAuth();
 
   const {
     register,
@@ -37,40 +36,22 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
   const onSubmit = async (data: LoginCredentials) => {
     try {
-      setIsLoading(true);
       setError(null);
-      clearError();
-
-      console.log('📝 [LOGIN-FORM] Submitting login form for:', data.email);
       
       const { error } = await signIn(data);
       
       if (error) {
-        console.error('❌ [LOGIN-FORM] Login form error:', error);
         setError(error.message);
-        setIsLoading(false);
       } else {
-        console.log('✅ [LOGIN-FORM] Login form successful - calling onSuccess');
         reset();
         onSuccess?.();
-        // Don't set loading to false here - let auth state handle it
       }
     } catch (err) {
-      console.error('❌ [LOGIN-FORM] Unexpected login form error:', err);
       setError('An unexpected error occurred. Please try again.');
-      setIsLoading(false);
     }
   };
 
-  const isFormLoading = isLoading || authLoading || isSubmitting;
-
-  console.log('🎯 [LOGIN-FORM] Render state:', {
-    isLoading,
-    authLoading,
-    isSubmitting,
-    isFormLoading,
-    hasError: !!error
-  });
+  const isFormLoading = authLoading || isSubmitting;
 
   return (
     <div className="w-full max-w-md mx-auto">

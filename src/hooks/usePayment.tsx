@@ -61,10 +61,6 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
 
   const clearError = () => setError(null);
 
-  const generateOrderId = () => {
-    return `ORD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  };
-
   const generateUPILink = (request: PaymentRequest): string => {
     const merchantUPI = 'merchant@upi'; // Replace with actual merchant UPI ID
     const params = new URLSearchParams({
@@ -104,7 +100,7 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
       user_id: user.id,
       amount: request.amount,
       currency: request.currency || 'INR',
-      payment_method: request.paymentMethod,
+      payment_method: 'qr', // Only QR code method now
       upi_id: request.upiId,
       status: 'pending' as const,
       gateway_response: {}
@@ -140,30 +136,35 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
 
+      // Force QR code payment method
+      const qrRequest = { ...request, paymentMethod: 'qr' };
+
       // Create transaction record
-      const transaction = await createTransaction(request);
+      const transaction = await createTransaction(qrRequest);
       setCurrentTransaction(transaction);
 
-      // Generate UPI link
-      const upiLink = generateUPILink(request);
+      // Generate UPI link and QR code
+      const upiLink = generateUPILink(qrRequest);
+      const qrCodeDataUrl = await generateQRCode(upiLink);
 
-      // In a real implementation, you would integrate with a payment gateway
-      // For demo purposes, we'll simulate the payment process
-      
-      // Simulate payment gateway response
+      // Simulate payment gateway response for QR code
       const response: PaymentResponse = {
         success: true,
         transactionId: transaction.id,
-        orderId: request.orderId,
-        amount: request.amount,
+        orderId: qrRequest.orderId,
+        amount: qrRequest.amount,
         status: 'pending',
-        message: 'Payment initiated successfully',
+        message: 'QR code generated successfully. Please scan to complete payment.',
         timestamp: new Date().toISOString()
       };
 
-      // Update transaction with gateway response
+      // Update transaction with QR code data
       await updateTransaction(transaction.id, {
-        gateway_response: { upiLink, response }
+        gateway_response: { 
+          upiLink, 
+          qrCode: qrCodeDataUrl,
+          response 
+        }
       });
 
       return response;
@@ -190,9 +191,6 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
 
-      // In a real implementation, you would verify with the payment gateway
-      // For demo purposes, we'll simulate verification
-      
       const { data: transaction, error } = await supabase
         .from('transactions')
         .select('*')
@@ -201,8 +199,9 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
-      // Simulate random success/failure for demo
-      const isSuccess = Math.random() > 0.3; // 70% success rate
+      // For QR code payments, we simulate verification
+      // In a real implementation, you would verify with the payment gateway
+      const isSuccess = Math.random() > 0.2; // 80% success rate for demo
       const status = isSuccess ? 'success' : 'failed';
 
       // Update transaction status

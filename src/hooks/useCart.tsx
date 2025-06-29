@@ -54,18 +54,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
 
+      // Test Supabase connection first
+      const { data: connectionTest, error: connectionError } = await supabase
+        .from('cart_items')
+        .select('count')
+        .limit(1);
+
+      if (connectionError) {
+        console.error('Supabase connection error:', connectionError);
+        throw new Error(`Database connection failed: ${connectionError.message}`);
+      }
+
       const { data, error } = await supabase
         .from('cart_items')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Cart items query error:', error);
+        throw new Error(`Failed to load cart items: ${error.message}`);
+      }
 
       setItems(data || []);
     } catch (err) {
       console.error('Error loading cart items:', err);
-      setError('Failed to load cart items');
+      
+      if (err instanceof Error) {
+        if (err.message.includes('Failed to fetch')) {
+          setError('Unable to connect to the server. Please check your internet connection and try again.');
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Failed to load cart items. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -81,8 +104,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
 
+      // Convert product.id to integer for database compatibility
+      const productId = typeof product.id === 'string' ? parseInt(product.id, 10) : product.id;
+      
+      if (isNaN(productId)) {
+        throw new Error('Invalid product ID');
+      }
+
       // Check if item already exists in cart
-      const existingItem = items.find(item => item.product_id === product.id);
+      const existingItem = items.find(item => item.product_id === productId);
 
       if (existingItem) {
         // Update quantity
@@ -91,13 +121,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // Add new item
         const newItem = {
           user_id: user.id,
-          product_id: product.id,
+          product_id: productId,
           product_name: product.name,
           quantity,
-          price: parseFloat(product.price),
-          weight: product.weight,
-          image: product.image,
-          description: product.description
+          price: parseFloat(product.price.toString()),
+          weight: product.weight || null,
+          image: product.image || null,
+          description: product.description || null
         };
 
         const { data, error } = await supabase
@@ -106,13 +136,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Add to cart error:', error);
+          throw new Error(`Failed to add item to cart: ${error.message}`);
+        }
 
         setItems(prev => [data, ...prev]);
       }
     } catch (err) {
       console.error('Error adding to cart:', err);
-      setError('Failed to add item to cart');
+      
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to add item to cart. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -131,12 +169,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
         .eq('id', itemId)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Remove from cart error:', error);
+        throw new Error(`Failed to remove item: ${error.message}`);
+      }
 
       setItems(prev => prev.filter(item => item.id !== itemId));
     } catch (err) {
       console.error('Error removing from cart:', err);
-      setError('Failed to remove item from cart');
+      
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to remove item from cart. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -157,14 +203,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Update quantity error:', error);
+        throw new Error(`Failed to update quantity: ${error.message}`);
+      }
 
       setItems(prev => prev.map(item => 
         item.id === itemId ? { ...item, quantity } : item
       ));
     } catch (err) {
       console.error('Error updating quantity:', err);
-      setError('Failed to update quantity');
+      
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to update quantity. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -182,12 +236,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
         .delete()
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Clear cart error:', error);
+        throw new Error(`Failed to clear cart: ${error.message}`);
+      }
 
       setItems([]);
     } catch (err) {
       console.error('Error clearing cart:', err);
-      setError('Failed to clear cart');
+      
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to clear cart. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

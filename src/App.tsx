@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import { CartProvider } from './hooks/useCart';
 import { PaymentProvider } from './hooks/usePayment';
+import { OrderProvider } from './hooks/useOrder';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Products from './components/Products';
@@ -226,20 +227,22 @@ function App() {
     <AuthProvider>
       <CartProvider>
         <PaymentProvider>
-          <Router>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <ProfileSettings />
-                  </ProtectedRoute>
-                } 
-              />
-            </Routes>
-          </Router>
+          <OrderProvider>
+            <Router>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route 
+                  path="/profile" 
+                  element={
+                    <ProtectedRoute>
+                      <ProfileSettings />
+                    </ProtectedRoute>
+                  } 
+                />
+              </Routes>
+            </Router>
+          </OrderProvider>
         </PaymentProvider>
       </CartProvider>
     </AuthProvider>

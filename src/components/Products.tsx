@@ -5,6 +5,7 @@ import AddToCartButton from './cart/AddToCartButton';
 import QuantitySelector from './cart/QuantitySelector';
 import CartNotification from './cart/CartNotification';
 import AuthModal from './auth/AuthModal';
+import CompactActionButtons from './ui/CompactActionButtons';
 import NoResults from './NoResults';
 
 interface ProductsProps {
@@ -137,12 +138,6 @@ const Products: React.FC<ProductsProps> = ({ searchTerm }) => {
     });
   }, [searchTerm, products]);
 
-  const handleWhatsAppOrder = (productName: string) => {
-    const message = `Hi! I'd like to order ${productName}. Could you please provide me with more details about pricing and availability?`;
-    const whatsappUrl = `https://wa.me/918179715455?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-  };
-
   const handleQuantityChange = (productId: number, quantity: number) => {
     setQuantities(prev => ({
       ...prev,
@@ -258,8 +253,8 @@ const Products: React.FC<ProductsProps> = ({ searchTerm }) => {
                       </div>
                     </div>
 
-                    {/* Quantity Selector and Add to Cart */}
-                    <div className="space-y-3">
+                    {/* Quantity Selector */}
+                    <div className="mb-4">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-700">Quantity:</span>
                         <QuantitySelector
@@ -268,28 +263,15 @@ const Products: React.FC<ProductsProps> = ({ searchTerm }) => {
                           size="sm"
                         />
                       </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <AddToCartButton
-                          product={product}
-                          quantity={quantity}
-                          variant="primary"
-                          size="md"
-                          className="flex-1"
-                          showIcon={true}
-                          showText={false}
-                          onAuthRequired={() => setIsAuthModalOpen(true)}
-                          onSuccess={() => handleAddToCartSuccess(product.name, quantity)}
-                        />
-                        
-                        <button
-                          onClick={() => handleWhatsAppOrder(product.name)}
-                          className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 group"
-                        >
-                          <MessageCircle size={16} className="group-hover:animate-pulse" />
-                        </button>
-                      </div>
                     </div>
+                    
+                    {/* Action Buttons - Only Compact buttons with text */}
+                    <CompactActionButtons
+                      product={product}
+                      quantity={quantity}
+                      onAuthRequired={() => setIsAuthModalOpen(true)}
+                      onAddToCartSuccess={handleAddToCartSuccess}
+                    />
                   </div>
                 </div>
               );
