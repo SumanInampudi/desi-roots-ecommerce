@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Products from './components/Products';
+import Testimonials from './components/Testimonials';
 import About from './components/About';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
@@ -88,6 +89,7 @@ function App() {
         filteredProducts={filteredProducts}
       />
       <Products searchTerm={searchTerm} />
+      <Testimonials />
       <About />
       <Contact />
       <Footer />
