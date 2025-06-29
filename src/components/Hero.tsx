@@ -53,6 +53,19 @@ const Hero: React.FC<HeroProps> = ({
     window.open(whatsappUrl, '_blank');
   };
 
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, index) => (
+      <Star
+        key={index}
+        className={`w-4 h-4 ${
+          index < rating 
+            ? 'text-amber-400 fill-current drop-shadow-lg' 
+            : 'text-white/40'
+        }`}
+      />
+    ));
+  };
+
   return (
     <section id="home" className="relative pt-16 overflow-hidden">
       {/* Background Image */}
@@ -205,12 +218,25 @@ const Hero: React.FC<HeroProps> = ({
                         </div>
                       </div>
 
-                      <div className="aspect-w-16 aspect-h-12 overflow-hidden">
+                      <div className="aspect-w-16 aspect-h-12 overflow-hidden relative">
                         <img
                           src={product.image}
                           alt={product.name}
                           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                         />
+                        
+                        {/* Star Rating overlay at top of image */}
+                        <div className="absolute top-3 left-3">
+                          <div className="flex items-center space-x-1 px-3 py-2 rounded-lg backdrop-blur-sm bg-black/20 border border-white/20">
+                            <div className="flex space-x-0.5">
+                              {renderStars(product.rating || 5)}
+                            </div>
+                            <span className="text-xs font-bold text-white ml-1 drop-shadow-lg">
+                              {product.rating || 5}.0
+                            </span>
+                          </div>
+                        </div>
+
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       </div>
                       
