@@ -28,8 +28,9 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', className = '' }) => {
         />
       </div>
       <div className="ml-3 flex flex-col">
-        <span className={`font-bold bg-gradient-to-r from-green-800 to-green-600 bg-clip-text text-transparent ${size === 'sm' ? 'text-lg' : size === 'md' ? 'text-xl' : 'text-2xl'}`}>
-          Desi Roots
+        <span className={`font-bold ${size === 'sm' ? 'text-lg' : size === 'md' ? 'text-xl' : 'text-2xl'}`}>
+          <span className="text-red-600">Desi</span>
+          <span className="text-amber-900 ml-1">Roots</span>
         </span>
         <span className={`${textSizes[size]} text-green-700 font-serif italic tracking-wide -mt-1 opacity-80`}>
           The Authentic Taste of Guntur Spice

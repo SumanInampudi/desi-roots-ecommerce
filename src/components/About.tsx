@@ -45,7 +45,7 @@ const About: React.FC = () => {
               key={index}
               className="text-center group hover:transform hover:scale-105 transition-all duration-300"
             >
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 text-red-800 rounded-full mb-6 group-hover:bg-red-800 group-hover:text-white transition-colors duration-300">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-800 text-white rounded-full mb-6 group-hover:bg-green-900 group-hover:text-white transition-colors duration-300">
                 {value.icon}
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">
