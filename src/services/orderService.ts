@@ -7,7 +7,7 @@ export class OrderService {
   private static readonly BUSINESS_WHATSAPP = '918179715455';
   private static readonly DELIVERY_DAYS = 3;
 
-  static generateOrderId(): string {
+  static generateDisplayOrderId(): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substr(2, 6).toUpperCase();
     return `DR${timestamp.toString().slice(-6)}${random}`;
@@ -86,9 +86,9 @@ export class OrderService {
     customerInfo: any,
     items: CartItem[],
     summary: CartSummary,
-    paymentMethod: string
+    paymentMethod: string,
+    orderId: string = ''
   ): OrderDetails {
-    const orderId = this.generateOrderId();
     const trackingNumber = this.generateTrackingNumber();
     const orderDate = new Date().toLocaleString('en-IN');
     const estimatedDelivery = this.calculateEstimatedDelivery();
@@ -117,32 +117,62 @@ export class OrderService {
     };
   }
 
-  static async saveOrderToDatabase(orderDetails: OrderDetails, userId: string): Promise<boolean> {
+  static async saveOrderToDatabase(orderDetails: OrderDetails, userId: string): Promise<{ success: boolean; orderId?: string }> {
     try {
-      const { error } = await supabase
+      // Determine payment status based on payment method
+      const paymentStatus = orderDetails.paymentMethod === 'cod' ? 'cod_pending' : 'pending';
+      
+      // Generate a display order ID for the order_number field
+      const displayOrderId = this.generateDisplayOrderId();
+      
+      const { data, error } = await supabase
         .from('orders')
         .insert([{
-          id: orderDetails.orderId,
           user_id: userId,
+          order_number: displayOrderId,
           items: orderDetails.items,
           total_amount: orderDetails.summary.total,
           delivery_fee: orderDetails.summary.deliveryFee,
           payment_method: orderDetails.paymentMethod,
-          payment_status: 'pending',
+          payment_status: paymentStatus,
           order_status: 'pending',
           shipping_address: orderDetails.customerInfo.address
-        }]);
+        }])
+        .select('id, order_number')
+        .single();
 
       if (error) {
         console.error('❌ [ORDER] Database save error:', error);
-        return false;
+        return { success: false };
       }
 
-      console.log('✅ [ORDER] Order saved to database:', orderDetails.orderId);
-      return true;
+      console.log('✅ [ORDER] Order saved to database:', data.id);
+      return { success: true, orderId: data.id };
     } catch (error) {
       console.error('❌ [ORDER] Unexpected database error:', error);
-      return false;
+      return { success: false };
+    }
+  }
+
+  static getPaymentMethodDisplayName(paymentMethod: string): string {
+    switch (paymentMethod.toLowerCase()) {
+      case 'cod':
+        return 'Cash on Delivery (COD)';
+      case 'qr':
+        return 'UPI/QR Code Payment';
+      default:
+        return paymentMethod.toUpperCase();
+    }
+  }
+
+  static getPaymentStatusDisplayName(paymentMethod: string): string {
+    switch (paymentMethod.toLowerCase()) {
+      case 'cod':
+        return 'Payment on Delivery';
+      case 'qr':
+        return 'Pending Verification';
+      default:
+        return 'Pending';
     }
   }
 
@@ -156,6 +186,12 @@ export class OrderService {
         <td style="padding: 12px; text-align: right; font-weight: bold;">₹${item.total.toFixed(2)}</td>
       </tr>
     `).join('');
+
+    const paymentMethodDisplay = this.getPaymentMethodDisplayName(orderDetails.paymentMethod);
+    const paymentStatusDisplay = this.getPaymentStatusDisplayName(orderDetails.paymentMethod);
+    const paymentBgColor = orderDetails.paymentMethod === 'cod' ? '#dcfce7' : '#fef3c7';
+    const paymentBorderColor = orderDetails.paymentMethod === 'cod' ? '#16a34a' : '#f59e0b';
+    const paymentTextColor = orderDetails.paymentMethod === 'cod' ? '#15803d' : '#92400e';
 
     return `
     <!DOCTYPE html>
@@ -263,9 +299,9 @@ export class OrderService {
           </div>
         </div>
         
-        <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin-top: 20px;">
-          <strong style="color: #92400e;">Payment Method:</strong> ${orderDetails.paymentMethod.toUpperCase()}<br>
-          <strong style="color: #92400e;">Payment Status:</strong> <span style="color: #d97706;">Pending Verification</span>
+        <div style="background: ${paymentBgColor}; border: 1px solid ${paymentBorderColor}; border-radius: 8px; padding: 15px; margin-top: 20px;">
+          <strong style="color: ${paymentTextColor};">Payment Method:</strong> ${paymentMethodDisplay}<br>
+          <strong style="color: ${paymentTextColor};">Payment Status:</strong> <span style="color: ${paymentTextColor};">${paymentStatusDisplay}</span>
         </div>
       </div>
 
@@ -273,9 +309,13 @@ export class OrderService {
       <div style="background: #eff6ff; border: 1px solid #3b82f6; border-radius: 10px; padding: 25px; margin-bottom: 25px;">
         <h3 style="color: #1e40af; margin: 0 0 15px 0; font-size: 18px;">📱 What's Next?</h3>
         <ul style="margin: 0; padding-left: 20px; color: #1e40af;">
-          <li style="margin-bottom: 8px;">We'll verify your payment and confirm your order via WhatsApp</li>
+          <li style="margin-bottom: 8px;">We'll confirm your order via WhatsApp</li>
           <li style="margin-bottom: 8px;">You'll receive tracking updates via SMS and email</li>
           <li style="margin-bottom: 8px;">Your order will be delivered within 2-3 business days</li>
+          ${orderDetails.paymentMethod === 'cod' 
+            ? '<li style="margin-bottom: 8px;">Please keep ₹' + orderDetails.summary.total.toFixed(2) + ' ready for cash payment on delivery</li>'
+            : '<li style="margin-bottom: 8px;">We\'ll verify your payment and confirm your order</li>'
+          }
           <li style="margin-bottom: 8px;">Contact us if you have any questions about your order</li>
         </ul>
       </div>
@@ -324,13 +364,14 @@ export class OrderService {
       console.log('📧 [EMAIL] To:', this.BUSINESS_EMAIL);
       console.log('📧 [EMAIL] Order ID:', orderDetails.orderId);
       console.log('📧 [EMAIL] Customer:', orderDetails.customerInfo.name);
+      console.log('📧 [EMAIL] Payment Method:', orderDetails.paymentMethod);
       
       // For demo purposes, we'll simulate email sending
       // In production, replace this with actual email service integration
       
       const emailData = {
         to: this.BUSINESS_EMAIL,
-        subject: `🛍️ New Order Received - ${orderDetails.orderId} - Desi Roots`,
+        subject: `🛍️ New Order Received - ${orderDetails.orderId} - ${this.getPaymentMethodDisplayName(orderDetails.paymentMethod)} - Desi Roots`,
         html: this.generateEmailHTML(orderDetails),
         orderDetails
       };
@@ -350,6 +391,14 @@ export class OrderService {
     const itemsList = orderDetails.items.map((item, index) => 
       `${index + 1}. ${item.name}\n   • Quantity: ${item.quantity}\n   • Weight: ${item.weight}\n   • Price: ₹${item.price} each\n   • Total: ₹${item.total.toFixed(2)}`
     ).join('\n\n');
+
+    const paymentMethodDisplay = this.getPaymentMethodDisplayName(orderDetails.paymentMethod);
+    const paymentStatusDisplay = this.getPaymentStatusDisplayName(orderDetails.paymentMethod);
+    
+    // Add COD-specific instructions
+    const codInstructions = orderDetails.paymentMethod === 'cod' 
+      ? `\n💰 *CASH ON DELIVERY*\nAmount to collect: ₹${orderDetails.summary.total.toFixed(2)}\nPlease ensure customer has exact change ready.\n`
+      : '';
 
     return `🛍️ *NEW ORDER RECEIVED*
 📋 Order ID: ${orderDetails.orderId}
@@ -374,10 +423,11 @@ Subtotal: ₹${orderDetails.summary.subtotal.toFixed(2)}
 Delivery Fee: ${orderDetails.summary.deliveryFee === 0 ? 'FREE' : `₹${orderDetails.summary.deliveryFee.toFixed(2)}`}
 *Total Amount: ₹${orderDetails.summary.total.toFixed(2)}*
 
-💳 Payment Method: ${orderDetails.paymentMethod.toUpperCase()}
+💳 Payment Method: ${paymentMethodDisplay}
+📊 Payment Status: ${paymentStatusDisplay}
 📅 Estimated Delivery: ${orderDetails.estimatedDelivery}
-
-⚡ Please confirm this order and provide payment verification.
+${codInstructions}
+⚡ Please confirm this order and arrange for delivery.
 
 Thank you for choosing Desi Roots! 🌶️`;
   }
@@ -390,6 +440,7 @@ Thank you for choosing Desi Roots! 🌶️`;
       
       console.log('📱 [WHATSAPP] Opening WhatsApp with order details...');
       console.log('📱 [WHATSAPP] Order ID:', orderDetails.orderId);
+      console.log('📱 [WHATSAPP] Payment Method:', orderDetails.paymentMethod);
       
       // Open WhatsApp in a new tab
       window.open(whatsappUrl, '_blank');
@@ -410,6 +461,7 @@ Thank you for choosing Desi Roots! 🌶️`;
     userId: string
   ): Promise<OrderProcessingResult> {
     console.log('🚀 [ORDER] Starting order processing...');
+    console.log('💳 [ORDER] Payment method:', paymentMethod);
     
     const errors: string[] = [];
     let emailSent = false;
@@ -429,20 +481,27 @@ Thank you for choosing Desi Roots! 🌶️`;
       }
       console.log('✅ [ORDER] Order data validation passed');
 
-      // Step 2: Create order details
-      console.log('2️⃣ [ORDER] Creating order details...');
-      const orderDetails = this.createOrderDetails(customerInfo, items, summary, paymentMethod);
-      orderId = orderDetails.orderId;
-      console.log('✅ [ORDER] Order details created:', orderId);
+      // Step 2: Create initial order details (without orderId)
+      console.log('2️⃣ [ORDER] Creating initial order details...');
+      let orderDetails = this.createOrderDetails(customerInfo, items, summary, paymentMethod);
+      console.log('✅ [ORDER] Initial order details created');
 
-      // Step 3: Save to database
+      // Step 3: Save to database and get the generated UUID
       console.log('3️⃣ [ORDER] Saving order to database...');
-      const dbSaved = await this.saveOrderToDatabase(orderDetails, userId);
-      if (!dbSaved) {
+      const dbResult = await this.saveOrderToDatabase(orderDetails, userId);
+      if (!dbResult.success || !dbResult.orderId) {
         errors.push('Failed to save order to database');
-      } else {
-        console.log('✅ [ORDER] Order saved to database');
+        return {
+          success: false,
+          message: 'Failed to save order to database',
+          errors
+        };
       }
+      
+      // Update orderDetails with the database-generated UUID
+      orderId = dbResult.orderId;
+      orderDetails = { ...orderDetails, orderId };
+      console.log('✅ [ORDER] Order saved to database with ID:', orderId);
 
       // Step 4: Send email notification
       console.log('4️⃣ [ORDER] Sending email notification...');
@@ -469,12 +528,17 @@ Thank you for choosing Desi Roots! 🌶️`;
       }
 
       // Determine success
-      const success = dbSaved && (emailSent || whatsappSent);
+      const success = true; // Database save was successful, notifications are secondary
+      
+      // Create success message based on payment method
+      const successMessage = paymentMethod === 'cod' 
+        ? 'Order placed successfully! Your COD order has been confirmed. Check your email and WhatsApp for details.'
+        : 'Order placed successfully! Check your email and WhatsApp for confirmation.';
       
       console.log('🏁 [ORDER] Order processing completed:', {
         success,
         orderId,
-        dbSaved,
+        paymentMethod,
         emailSent,
         whatsappSent,
         errorCount: errors.length
@@ -484,7 +548,7 @@ Thank you for choosing Desi Roots! 🌶️`;
         success,
         orderId,
         message: success 
-          ? 'Order placed successfully! Check your email and WhatsApp for confirmation.'
+          ? successMessage
           : 'Order processing encountered some issues, but your order has been received.',
         emailSent,
         whatsappSent,

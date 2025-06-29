@@ -6,6 +6,7 @@ import QuantitySelector from './cart/QuantitySelector';
 import CartNotification from './cart/CartNotification';
 import AuthModal from './auth/AuthModal';
 import CompactActionButtons from './ui/CompactActionButtons';
+import FavoriteButton from './favorites/FavoriteButton';
 import NoResults from './NoResults';
 
 interface ProductsProps {
@@ -215,7 +216,7 @@ const Products: React.FC<ProductsProps> = ({ searchTerm }) => {
                     />
                     
                     {/* Star Rating overlay */}
-                    <div className="absolute top-3 left-3">
+                    <div className="absolute bottom-3 left-3">
                       <div className="flex items-center space-x-1 px-3 py-2 rounded-lg backdrop-blur-sm bg-black/20 border border-white/20">
                         <div className="flex space-x-0.5">
                           {renderStars(product.rating)}
@@ -230,9 +231,20 @@ const Products: React.FC<ProductsProps> = ({ searchTerm }) => {
                   </div>
                   
                   <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-3 pr-8">
-                      {product.name}
-                    </h3>
+                    {/* Product Title with Favorite Button */}
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="text-xl font-bold text-gray-900 line-clamp-2 flex-1">
+                        {product.name}
+                      </h3>
+                      <div className="ml-2 flex-shrink-0">
+                        <FavoriteButton
+                          product={product}
+                          onAuthRequired={() => setIsAuthModalOpen(true)}
+                          size="sm"
+                          showTooltip={false}
+                        />
+                      </div>
+                    </div>
                     
                     <p className="text-gray-600 mb-4 leading-relaxed text-sm">
                       {product.description}

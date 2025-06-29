@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, MapPin, User, Phone, Mail, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MapPin, User, Phone, Mail, Loader2, CheckCircle, AlertTriangle, Truck } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -32,7 +32,7 @@ interface CheckoutPageProps {
 
 const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onPaymentSuccess }) => {
   const [step, setStep] = useState<'details' | 'payment'>('details');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('qr');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('cod');
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   
   const { items, summary } = useCart();
@@ -98,6 +98,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onPaymentSuccess })
 
     try {
       console.log('🛒 [CHECKOUT] Processing order...');
+      console.log('💳 [CHECKOUT] Payment method:', selectedPaymentMethod);
       
       // Process the order with comprehensive handling
       await processOrder(data, selectedPaymentMethod);
@@ -357,19 +358,42 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onPaymentSuccess })
 
               {/* Order Processing Info */}
               {step === 'payment' && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className={`border rounded-lg p-4 ${
+                  selectedPaymentMethod === 'cod' 
+                    ? 'bg-green-50 border-green-200' 
+                    : 'bg-blue-50 border-blue-200'
+                }`}>
                   <div className="flex items-start space-x-3">
-                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    {selectedPaymentMethod === 'cod' ? (
+                      <Truck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    )}
                     <div>
-                      <h4 className="text-sm font-medium text-green-900 mb-1">Complete Order Processing</h4>
-                      <p className="text-sm text-green-800">
+                      <h4 className={`text-sm font-medium mb-1 ${
+                        selectedPaymentMethod === 'cod' ? 'text-green-900' : 'text-blue-900'
+                      }`}>
+                        {selectedPaymentMethod === 'cod' ? 'Cash on Delivery Order' : 'Complete Order Processing'}
+                      </h4>
+                      <p className={`text-sm ${
+                        selectedPaymentMethod === 'cod' ? 'text-green-800' : 'text-blue-800'
+                      }`}>
                         When you place your order, we will:
                       </p>
-                      <ul className="text-sm text-green-800 mt-2 space-y-1">
+                      <ul className={`text-sm mt-2 space-y-1 ${
+                        selectedPaymentMethod === 'cod' ? 'text-green-800' : 'text-blue-800'
+                      }`}>
                         <li>• Generate your order confirmation with tracking number</li>
                         <li>• Send detailed order summary to sinampudi.suman@gmail.com</li>
                         <li>• Automatically send order details to WhatsApp for immediate processing</li>
-                        <li>• Provide you with order confirmation and tracking information</li>
+                        {selectedPaymentMethod === 'cod' ? (
+                          <>
+                            <li>• Confirm your COD order and arrange delivery</li>
+                            <li>• Contact you before delivery to ensure availability</li>
+                          </>
+                        ) : (
+                          <li>• Provide you with order confirmation and tracking information</li>
+                        )}
                       </ul>
                     </div>
                   </div>

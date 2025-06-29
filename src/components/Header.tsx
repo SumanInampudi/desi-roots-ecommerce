@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, User, LogOut, Settings, LogIn } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, LogIn, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Logo from './Logo';
 import CartIcon from './cart/CartIcon';
 import { useAuth } from '../hooks/useAuth';
+import { useFavorites } from '../hooks/useFavorites';
 import AuthModal from './auth/AuthModal';
 
 interface HeaderProps {
@@ -18,6 +19,7 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onNavClick, onCartClick 
   const [showUserMenu, setShowUserMenu] = useState(false);
   
   const { user, signOut, loading, isAuthenticated } = useAuth();
+  const { favorites } = useFavorites();
   const navigate = useNavigate();
 
   // Debug logging
@@ -74,6 +76,12 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onNavClick, onCartClick 
     navigate('/profile');
   };
 
+  const handleFavoritesClick = () => {
+    console.log('❤️ [HEADER] Favorites clicked');
+    setShowUserMenu(false);
+    navigate('/favorites');
+  };
+
   const handleAuthModalClose = () => {
     console.log('❌ [HEADER] Auth modal closed');
     setIsAuthModalOpen(false);
@@ -100,7 +108,8 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onNavClick, onCartClick 
     hasUser: !!user,
     userEmail: user?.email,
     showUserMenu,
-    isAuthModalOpen
+    isAuthModalOpen,
+    favoritesCount: favorites.length
   });
 
   return (
@@ -128,10 +137,28 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onNavClick, onCartClick 
               ))}
             </nav>
 
-            {/* Right Side - Cart and Auth */}
+            {/* Right Side - Cart, Favorites, and Auth */}
             <div className="flex items-center space-x-3">
               {/* Cart Icon */}
               <CartIcon onClick={onCartClick} variant="header" />
+
+              {/* Favorites Icon - only show for authenticated users */}
+              {isAuthenticated && (
+                <button
+                  onClick={handleFavoritesClick}
+                  className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
+                  title="My Favorites"
+                  aria-label={`My favorites with ${favorites.length} items`}
+                >
+                  <Heart className="w-6 h-6 text-gray-700 hover:text-red-600 transition-colors duration-200" />
+                  
+                  {favorites.length > 0 && (
+                    <div className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse border-2 border-white">
+                      {favorites.length > 99 ? '99+' : favorites.length}
+                    </div>
+                  )}
+                </button>
+              )}
 
               {/* Auth Section */}
               <div className="flex items-center">
@@ -177,6 +204,19 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onNavClick, onCartClick 
                               {user.email}
                             </p>
                           </div>
+                          
+                          <button
+                            onClick={handleFavoritesClick}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2 transition-colors duration-200"
+                          >
+                            <Heart className="w-4 h-4" />
+                            <span>My Favorites</span>
+                            {favorites.length > 0 && (
+                              <span className="ml-auto bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
+                                {favorites.length}
+                              </span>
+                            )}
+                          </button>
                           
                           <button
                             onClick={handleProfileSettings}
@@ -253,6 +293,24 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onNavClick, onCartClick 
                           {user.email}
                         </p>
                       </div>
+                      
+                      <button
+                        onClick={() => {
+                          handleFavoritesClick();
+                          setIsMenuOpen(false);
+                        }}
+                        className="flex items-center justify-between w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors duration-200"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Heart className="w-5 h-5" />
+                          <span>My Favorites</span>
+                        </div>
+                        {favorites.length > 0 && (
+                          <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
+                            {favorites.length}
+                          </span>
+                        )}
+                      </button>
                       
                       <button
                         onClick={() => {

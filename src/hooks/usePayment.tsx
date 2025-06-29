@@ -100,7 +100,7 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
       user_id: user.id,
       amount: request.amount,
       currency: request.currency || 'INR',
-      payment_method: 'qr', // Only QR code method now
+      payment_method: request.paymentMethod,
       upi_id: request.upiId,
       status: 'pending' as const,
       gateway_response: {}
@@ -136,7 +136,24 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
 
-      // Force QR code payment method
+      // Handle COD payments differently
+      if (request.paymentMethod === 'cod') {
+        // For COD, we don't need to create a transaction or generate QR codes
+        // Just return a success response
+        const response: PaymentResponse = {
+          success: true,
+          transactionId: `cod_${Date.now()}`,
+          orderId: request.orderId,
+          amount: request.amount,
+          status: 'pending',
+          message: 'COD order confirmed. Payment will be collected on delivery.',
+          timestamp: new Date().toISOString()
+        };
+
+        return response;
+      }
+
+      // For QR code payments, proceed with existing logic
       const qrRequest = { ...request, paymentMethod: 'qr' };
 
       // Create transaction record
@@ -190,6 +207,19 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       setError(null);
+
+      // Handle COD verification
+      if (transactionId.startsWith('cod_')) {
+        return {
+          success: true,
+          transactionId,
+          orderId: '',
+          amount: 0,
+          status: 'success',
+          message: 'COD order confirmed',
+          timestamp: new Date().toISOString()
+        };
+      }
 
       const { data: transaction, error } = await supabase
         .from('transactions')

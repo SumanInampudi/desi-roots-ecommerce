@@ -49,6 +49,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
+  // Helper function to clear auth state immediately
+  const clearAuthState = () => {
+    setState({
+      user: null,
+      session: null,
+      profile: null,
+      loading: false,
+      error: null,
+    });
+  };
+
   // Initialize auth state with faster loading
   useEffect(() => {
     let mounted = true;
@@ -79,6 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.log('🔄 [AUTH] Invalid refresh token detected, clearing session');
             // Clear the invalid session from local storage
             await supabase.auth.signOut();
+            // Immediately clear auth state
+            if (mounted) {
+              clearAuthState();
+              setIsInitialized(true);
+            }
+            return;
           }
           
           if (mounted) {
@@ -137,6 +154,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch (signOutError) {
             console.error('❌ [AUTH] Error during signOut:', signOutError);
           }
+          // Immediately clear auth state
+          if (mounted) {
+            clearAuthState();
+            setIsInitialized(true);
+          }
+          return;
         }
         
         clearTimeout(initTimeout);
@@ -187,17 +210,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
           } else if (event === 'SIGNED_OUT') {
             setIsSigningIn(false);
-            setState({
-              user: null,
-              session: null,
-              profile: null,
-              loading: false,
-              error: null,
-            });
+            clearAuthState();
             
             localStorage.removeItem('supabase.auth.remember');
             
-            if (window.location.pathname.includes('/profile')) {
+            if (window.location.pathname.includes('/profile') || window.location.pathname.includes('/admin')) {
               window.location.href = '/';
             }
           } else if (event === 'TOKEN_REFRESHED' && session) {
@@ -228,6 +245,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } catch (signOutError) {
               console.error('❌ [AUTH] Error during signOut in auth state change:', signOutError);
             }
+            // Immediately clear auth state
+            if (mounted) {
+              clearAuthState();
+            }
+            return;
           }
           
           setIsSigningIn(false);
@@ -368,6 +390,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (signOutError) {
           console.error('❌ [AUTH] Error during signOut in sign in:', signOutError);
         }
+        // Immediately clear auth state
+        clearAuthState();
         return {
           error: {
             message: 'Session expired. Please try signing in again.',
@@ -629,6 +653,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             error.message?.includes('Refresh Token Not Found')) {
           console.log('🔄 [AUTH] Invalid refresh token during manual refresh, clearing session');
           await supabase.auth.signOut();
+          // Immediately clear auth state
+          clearAuthState();
           return {
             error: {
               message: 'Session expired. Please sign in again.',
@@ -657,6 +683,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (signOutError) {
           console.error('❌ [AUTH] Error during signOut in refresh catch:', signOutError);
         }
+        // Immediately clear auth state
+        clearAuthState();
         return {
           error: {
             message: 'Session expired. Please sign in again.',

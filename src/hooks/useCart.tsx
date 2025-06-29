@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, testSupabaseConnection } from '../lib/supabase';
 import { useAuth } from './useAuth';
 import type { CartItem, CartSummary, Product } from '../types/cart';
 
@@ -55,14 +55,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       // Test Supabase connection first
-      const { data: connectionTest, error: connectionError } = await supabase
-        .from('cart_items')
-        .select('count')
-        .limit(1);
-
-      if (connectionError) {
-        console.error('Supabase connection error:', connectionError);
-        throw new Error(`Database connection failed: ${connectionError.message}`);
+      const isConnected = await testSupabaseConnection();
+      if (!isConnected) {
+        throw new Error('Unable to connect to the database. Please check your internet connection and try again.');
       }
 
       const { data, error } = await supabase
@@ -73,7 +68,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Cart items query error:', error);
-        throw new Error(`Failed to load cart items: ${error.message}`);
+        
+        // Provide more specific error messages
+        if (error.message.includes('Failed to fetch')) {
+          throw new Error('Network connection failed. Please check your internet connection and try again.');
+        } else if (error.message.includes('JWT')) {
+          throw new Error('Authentication expired. Please sign in again.');
+        } else if (error.message.includes('permission')) {
+          throw new Error('Access denied. Please sign in to view your cart.');
+        } else {
+          throw new Error(`Database error: ${error.message}`);
+        }
       }
 
       setItems(data || []);
@@ -81,8 +86,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       console.error('Error loading cart items:', err);
       
       if (err instanceof Error) {
-        if (err.message.includes('Failed to fetch')) {
+        if (err.message.includes('Failed to fetch') || err.message.includes('Network')) {
           setError('Unable to connect to the server. Please check your internet connection and try again.');
+        } else if (err.message.includes('timeout')) {
+          setError('Request timed out. Please try again.');
         } else {
           setError(err.message);
         }
@@ -103,6 +110,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       setError(null);
+
+      // Test connection before proceeding
+      const isConnected = await testSupabaseConnection();
+      if (!isConnected) {
+        throw new Error('Unable to connect to the database. Please check your internet connection and try again.');
+      }
 
       // Convert product.id to integer for database compatibility
       const productId = typeof product.id === 'string' ? parseInt(product.id, 10) : product.id;
@@ -138,7 +151,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.error('Add to cart error:', error);
-          throw new Error(`Failed to add item to cart: ${error.message}`);
+          
+          if (error.message.includes('Failed to fetch')) {
+            throw new Error('Network connection failed. Please check your internet connection and try again.');
+          } else {
+            throw new Error(`Failed to add item to cart: ${error.message}`);
+          }
         }
 
         setItems(prev => [data, ...prev]);
@@ -171,7 +189,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Remove from cart error:', error);
-        throw new Error(`Failed to remove item: ${error.message}`);
+        
+        if (error.message.includes('Failed to fetch')) {
+          throw new Error('Network connection failed. Please check your internet connection and try again.');
+        } else {
+          throw new Error(`Failed to remove item: ${error.message}`);
+        }
       }
 
       setItems(prev => prev.filter(item => item.id !== itemId));
@@ -205,7 +228,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Update quantity error:', error);
-        throw new Error(`Failed to update quantity: ${error.message}`);
+        
+        if (error.message.includes('Failed to fetch')) {
+          throw new Error('Network connection failed. Please check your internet connection and try again.');
+        } else {
+          throw new Error(`Failed to update quantity: ${error.message}`);
+        }
       }
 
       setItems(prev => prev.map(item => 
@@ -238,7 +266,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Clear cart error:', error);
-        throw new Error(`Failed to clear cart: ${error.message}`);
+        
+        if (error.message.includes('Failed to fetch')) {
+          throw new Error('Network connection failed. Please check your internet connection and try again.');
+        } else {
+          throw new Error(`Failed to clear cart: ${error.message}`);
+        }
       }
 
       setItems([]);

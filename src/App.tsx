@@ -4,6 +4,8 @@ import { AuthProvider } from './hooks/useAuth';
 import { CartProvider } from './hooks/useCart';
 import { PaymentProvider } from './hooks/usePayment';
 import { OrderProvider } from './hooks/useOrder';
+import { FavoritesProvider } from './hooks/useFavorites';
+import { AdminProvider } from './hooks/useAdmin';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Products from './components/Products';
@@ -15,10 +17,15 @@ import CustomerSupport from './components/CustomerSupport';
 import ProfileSettings from './components/auth/ProfileSettings';
 import AuthCallback from './components/auth/AuthCallback';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import FavoritesPage from './components/favorites/FavoritesPage';
 import CartDrawer from './components/cart/CartDrawer';
 import CartIcon from './components/cart/CartIcon';
 import CheckoutPage from './components/payment/CheckoutPage';
 import PaymentSuccess from './components/payment/PaymentSuccess';
+import AdminRoute from './components/admin/AdminRoute';
+import AdminDashboard from './components/admin/AdminDashboard';
+import UserManagement from './components/admin/UserManagement';
+import OrderManagement from './components/admin/OrderManagement';
 
 function HomePage() {
   const [activeSection, setActiveSection] = useState('home');
@@ -225,26 +232,63 @@ function HomePage() {
 function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <PaymentProvider>
-          <OrderProvider>
-            <Router>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route 
-                  path="/profile" 
-                  element={
-                    <ProtectedRoute>
-                      <ProfileSettings />
-                    </ProtectedRoute>
-                  } 
-                />
-              </Routes>
-            </Router>
-          </OrderProvider>
-        </PaymentProvider>
-      </CartProvider>
+      <AdminProvider>
+        <FavoritesProvider>
+          <CartProvider>
+            <PaymentProvider>
+              <OrderProvider>
+                <Router>
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/auth/callback" element={<AuthCallback />} />
+                    <Route 
+                      path="/profile" 
+                      element={
+                        <ProtectedRoute>
+                          <ProfileSettings />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/favorites" 
+                      element={
+                        <ProtectedRoute>
+                          <FavoritesPage />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    {/* Admin Routes */}
+                    <Route 
+                      path="/admin" 
+                      element={
+                        <AdminRoute>
+                          <AdminDashboard />
+                        </AdminRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/admin/users" 
+                      element={
+                        <AdminRoute>
+                          <UserManagement />
+                        </AdminRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/admin/orders" 
+                      element={
+                        <AdminRoute>
+                          <OrderManagement />
+                        </AdminRoute>
+                      } 
+                    />
+                  </Routes>
+                </Router>
+              </OrderProvider>
+            </PaymentProvider>
+          </CartProvider>
+        </FavoritesProvider>
+      </AdminProvider>
     </AuthProvider>
   );
 }
